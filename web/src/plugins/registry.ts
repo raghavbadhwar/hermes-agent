@@ -17,15 +17,16 @@ import React, {
   useContext,
   createContext,
 } from "react";
-import { api, fetchJSON } from "@/lib/api";
+import { api, fetchJSON, authedFetch, buildWsUrl, buildWsAuthParam } from "@/lib/api";
 import { cn, timeAgo, isoTimeAgo } from "@/lib/utils";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
+import { Checkbox } from "@nous-research/ui/ui/components/checkbox";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardHeader, CardTitle, CardContent } from "@nous-research/ui/ui/components/card";
+import { Input } from "@nous-research/ui/ui/components/input";
+import { Label } from "@nous-research/ui/ui/components/label";
+import { Separator } from "@nous-research/ui/ui/components/separator";
 import { Tabs, TabsList, TabsTrigger } from "@nous-research/ui/ui/components/tabs";
 import { useI18n } from "@/i18n";
 import { registerSlot, PluginSlot } from "./slots";
@@ -87,20 +88,18 @@ export function getRegisteredCount(): number {
 // Expose SDK + registry on window
 // ---------------------------------------------------------------------------
 
-declare global {
-  interface Window {
-    __ARES_PLUGIN_SDK__: unknown;
-    __ARES_PLUGINS__: {
-      register: typeof registerPlugin;
-      registerSlot: typeof registerSlot;
-    };
-    __HERMES_PLUGIN_SDK__: unknown;
-    __HERMES_PLUGINS__: {
-      register: typeof registerPlugin;
-      registerSlot: typeof registerSlot;
-    };
-  }
-}
+/**
+ * Version of the plugin SDK contract (see ``plugins/sdk.d.ts``). Bump the
+ * major on any backwards-incompatible change to the exposed surface;
+ * additive changes (new optional fields / helpers) don't require a bump.
+ * Exposed at runtime as ``window.__HERMES_PLUGIN_SDK__.sdkVersion`` so a
+ * plugin (or a future host-side compatibility gate) can read it.
+ */
+export const SDK_CONTRACT_VERSION = "1.1.0";
+
+// Window globals for the plugin SDK are declared in ``plugins/sdk.d.ts`` —
+// the single source of truth for the public contract. Don't redeclare them
+// here (duplicate ambient declarations with differing modifiers conflict).
 
 export function exposePluginSDK() {
   const pluginRegistry = {
@@ -110,7 +109,10 @@ export function exposePluginSDK() {
   window.__ARES_PLUGINS__ = pluginRegistry;
   window.__HERMES_PLUGINS__ = pluginRegistry;
 
-  const pluginSdk = {
+  window.__HERMES_PLUGIN_SDK__ = {
+    // Contract version of the plugin SDK surface (see plugins/sdk.d.ts).
+    // Bump on backwards-incompatible changes; additive changes don't need it.
+    sdkVersion: SDK_CONTRACT_VERSION,
     // React core — plugins use these instead of importing react
     React,
     hooks: {
@@ -125,10 +127,21 @@ export function exposePluginSDK() {
 
     // Hermes API client
     api,
-    // Raw fetchJSON for plugin-specific endpoints
+    // Raw fetchJSON for plugin-specific JSON endpoints
     fetchJSON,
+    // Authenticated fetch for non-JSON endpoints (uploads / blob downloads).
+    // Handles loopback-token vs gated-cookie auth so plugins never read
+    // window.__HERMES_SESSION_TOKEN__ directly.
+    authedFetch,
+    // Build a ws(s):// URL with the correct auth param for the active mode
+    // (single-use ticket in gated mode, token in loopback). Use this for any
+    // plugin WebSocket instead of hand-assembling the URL.
+    buildWsUrl,
+    // Lower-level: resolve just the [authParamName, authParamValue] pair, for
+    // plugins that need to build the WS URL themselves.
+    buildWsAuthParam,
 
-    // UI components (shadcn/ui primitives)
+    // UI components — Nous DS where available, shadcn/ui primitives elsewhere.
     components: {
       Card,
       CardHeader,
@@ -136,6 +149,7 @@ export function exposePluginSDK() {
       CardContent,
       Badge,
       Button,
+      Checkbox,
       Input,
       Label,
       Select,
