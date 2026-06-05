@@ -1938,6 +1938,12 @@ function resolveHermesBackend(dashboardArgs) {
       }
     } else {
       hermesCommand = findOnPath('hermes')
+      if (!hermesCommand) {
+        const homeHermes = path.join(app.getPath('home'), '.local', 'bin', IS_WINDOWS ? 'hermes.exe' : 'hermes')
+        if (fileExists(homeHermes)) {
+          hermesCommand = homeHermes
+        }
+      }
     }
 
     if (hermesCommand) {
