@@ -15,6 +15,8 @@ Ares is a company brain for Indian wholesalers and distributors.
 
 It runs on the Hermes Agent runtime, but this repository is presented and operated as Ares: a vertical AIOS that watches business signals, remembers customer/vendor patterns, drafts owner actions, and asks for approval before anything ledger-impacting happens.
 
+> **Compatibility snapshot (2026-08-13):** this fork contains 13 commits not present in `NousResearch/hermes-agent`, while its pinned base is 11,090 upstream commits behind. Those 13 commits contain the Ares-specific wholesale workflows, command surface, memory patterns, approval UX, and operator documentation. The remaining runtime is inherited from Hermes under its MIT license. Because the fork has significantly diverged, this repository does **not** claim compatibility with current Hermes; treat the checked-in base as the supported state until an explicit rebase and full verification are completed.
+
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
 <tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
